@@ -1,0 +1,349 @@
+C51 COMPILER V9.57.0.0   1_1                                                               04/15/2020 12:16:48 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE 1_1
+OBJECT MODULE PLACED IN 1-1.OBJ
+COMPILER INVOKED BY: D:\Software\Keil\C51\BIN\C51.EXE 1-1.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include <reg52.h>
+   2          
+   3          sbit p34=P3^4;
+   4          sbit p35=P3^5;
+   5          sbit p36=P3^6;
+   6          sbit p37=P3^7;
+   7          sbit pe1=P2^4;
+   8          
+   9          sbit p30=P3^0;
+  10          sbit p31=P3^1;
+  11          sbit p32=P3^2;
+  12          sbit p33=P3^3;
+  13          sbit pe2=P2^5;
+  14                            
+  15          sbit p10=P1^0;
+  16          sbit p11=P1^1;
+  17          sbit p12=P1^2;
+  18          sbit p13=P1^3;
+  19          sbit pup=P2^6;
+  20          
+  21          sbit p14=P1^4;
+  22          sbit p15=P1^5;
+  23          sbit p16=P1^6;
+  24          sbit p17=P1^7;
+  25          sbit pdown=P2^7;
+  26          
+  27          
+  28          //EleOne 表示电梯1现在处于的楼层，EleTwo表示现在电梯2处于的楼层
+  29          //EleOneState表示电梯1所处的状态，其中0静止，1向上，2向下
+  30          //EleTwoState表示电梯2所处的状态，数字的含义和EleOneState完全相同
+  31          int EleOne=1,EleTwo=1,EleOneState=0,EleTwoState=0;
+  32          int e1=0,e2=0,down=0,up=0;
+  33          
+  34          
+  35          void delay(int k){
+  36   1              int i;
+  37   1              for(i=0;i<k;i++){}
+  38   1      }
+  39          
+  40          
+  41          void display_LED(){
+  42   1      
+  43   1              int i=0;
+  44   1              //依次点亮八个灯
+  45   1              while(i<8){
+  46   2                P2=i;
+  47   2                pe1=(e1>>i)&1==1;//如果第i位为1，则对应的灯亮
+  48   2                pdown=(down>>i)&1==1;
+  49   2                pup=(up>>i)&1==1;
+  50   2                pe2=(e2>>i)&1==1;
+  51   2                i++;
+  52   2                delay(50);
+  53   2              }
+  54   1      
+  55   1      }
+C51 COMPILER V9.57.0.0   1_1                                                               04/15/2020 12:16:48 PAGE 2   
+
+  56          
+  57          void display_Elevator(){
+  58   1      
+  59   1              P0=EleTwo+EleOne*16;
+  60   1      }
+  61          
+  62          //捕获按键
+  63          void update_click(){
+  64   1              //e1电梯按键
+  65   1                      if(p37){
+  66   2                              e1|=(1<<((p36*4)|(p35*2)|(p34)));
+  67   2                      }
+  68   1              //down电梯按钮
+  69   1                      if(p17){
+  70   2                              down|=(1<<((p16*4)|(p15*2)|(p14)));
+  71   2                      }
+  72   1              //up的按钮
+  73   1                      if(p13){
+  74   2                              up|=(1<<((p12*4)|(p11*2)|(p10)));
+  75   2                      }
+  76   1              //e2按钮
+  77   1                      if(p33){
+  78   2                              e2|=(1<<((p32*4)|(p31*2)|(p30)));
+  79   2                      }
+  80   1      }
+  81          int downFloor(int *x,int *y){
+  82   1      
+  83   1          if((*x&(~((*x>>(*y-1))<<(*y-1))))>0){
+  84   2              return 1;
+  85   2          }else{
+  86   2              return 0;
+  87   2          }
+  88   1      
+  89   1      }
+  90          
+  91          
+  92          void update_LED(){
+  93   1      
+  94   1              if(EleOneState==1){
+  95   2                      //处于上升状态
+  96   2                      up&=~(1<<(EleOne-1));
+  97   2                      e1&=~(1<<(EleOne-1));//第EleOne层置为0
+  98   2                      //是为了接到最高楼层的向下人员而处于的向上状态,而且当前楼层是向下人员中的最高层
+  99   2                      if((e1>>EleOne)<=0&&(up>>EleOne)<=0&&(down>>EleOne<=0)){
+ 100   3                              down&=~(1<<(EleOne-1));
+ 101   3                      }
+ 102   2              
+ 103   2              }else if(EleOneState==2){
+ 104   2      
+ 105   2                      down&=~(1<<(EleOne-1));
+ 106   2                      e1&=~(1<<(EleOne-1));
+ 107   2                      //为了接到最低楼层的向上人员,而且当前楼层是向上人员中的最底层
+ 108   2                      if(downFloor(&e1,&EleOne)<=0&&downFloor(&down,&EleOne)<=0&&downFloor(&up,&EleOne)<=0){
+ 109   3                              up&=~(1<<(EleOne-1));
+ 110   3                      }
+ 111   2              }
+ 112   1      
+ 113   1      
+ 114   1              if(EleTwoState==1){
+ 115   2              //处于上升状态
+ 116   2              up&=~(1<<(EleTwo-1));
+ 117   2              e2&=~(1<<(EleTwo-1));//第EleTwo层置为0
+C51 COMPILER V9.57.0.0   1_1                                                               04/15/2020 12:16:48 PAGE 3   
+
+ 118   2              //是为了接到最高楼层的向下人员而处于的向上状态,而且当前楼层是向下人员中的最高层
+ 119   2              if((e1>>EleTwo)<=0&&(up>>EleTwo)<=0&&(down>>EleTwo<=0)){
+ 120   3                  down&=~(1<<(EleTwo-1));
+ 121   3              }
+ 122   2      
+ 123   2          }else if(EleTwoState==2){
+ 124   2      
+ 125   2              down&=~(1<<(EleTwo-1));
+ 126   2              e2&=~(1<<(EleTwo-1));
+ 127   2              //为了接到最低楼层的向上人员,而且当前楼层是向上人员中的最底层
+ 128   2              if(downFloor(&e1,&EleTwo)<=0&&downFloor(&down,&EleTwo)<=0&&downFloor(&up,&EleTwo)<=0){
+ 129   3                  up&=~(1<<(EleTwo-1));
+ 130   3              }
+ 131   2          }
+ 132   1      }
+ 133          
+ 134          
+ 135          //Look电梯调度算法
+ 136          void LookAlgorithm()
+ 137          {
+ 138   1          //处理e1
+ 139   1          if(EleOneState==0){
+ 140   2              if((e1>>EleOne)>0){
+ 141   3                  EleOneState=1;
+ 142   3                  EleOne++;
+ 143   3              }else if(downFloor(&e1,&EleOne)){
+ 144   3                  EleOneState=2;
+ 145   3                  EleOne--;
+ 146   3              }
+ 147   2      
+ 148   2          }else if(EleOneState==1){
+ 149   2              //此时电梯处于向上工作状态，则只要电梯内部按下向上或者高楼层有人按下向上
+ 150   2              if((e1>>EleOne)>0||(up>>EleOne)>0){
+ 151   3                  EleOne++;
+ 152   3              }else if((down>>EleOne)>0){
+ 153   3                  //高楼层按下向下，则先上到最高楼层再向下
+ 154   3                  EleOne++;
+ 155   3              }else if(downFloor(&e1,&EleOne)||downFloor(&up,&EleOne)||downFloor(&down,&EleOne)){
+ 156   3                  //当电梯内部不需要向上而且高楼层无按钮按下，查看低楼层
+ 157   3                  EleOneState=2;
+ 158   3                  EleOne--;
+ 159   3              }else{
+ 160   3                  EleOneState=0;
+ 161   3              }
+ 162   2          }else{
+ 163   2              if(downFloor(&e1,&EleOne)||downFloor(&down,&EleOne)){
+ 164   3                  //处于向下状态时，如果电梯内部需要向下或者低楼层按下向下按钮
+ 165   3                  EleOne--;
+ 166   3              }else if(downFloor(&up,&EleOne)){
+ 167   3                  //低楼层有人向上，则降至最低楼层再向上
+ 168   3                  EleOne--;
+ 169   3              }else if((e1>>EleOne)>0||(up>>EleOne)>0||(down>>EleOne)>0){
+ 170   3                  //响应高楼层的请求
+ 171   3                  EleOneState=1;
+ 172   3                  EleOne++;
+ 173   3              }else{
+ 174   3                  EleOneState=0;
+ 175   3              }
+ 176   2      
+ 177   2          }
+ 178   1      
+ 179   1          //处理e2
+C51 COMPILER V9.57.0.0   1_1                                                               04/15/2020 12:16:48 PAGE 4   
+
+ 180   1          if(EleTwoState==0){
+ 181   2              if((e2>>EleTwo)>0){
+ 182   3                  EleTwoState=1;
+ 183   3                  EleTwo++;
+ 184   3              }else if(downFloor(&e2,&EleTwo)){
+ 185   3                  EleTwoState=2;
+ 186   3                  EleTwo--;
+ 187   3              }
+ 188   2      
+ 189   2          }else if(EleTwoState==1){
+ 190   2              //此时电梯处于向上工作状态，则只要电梯内部按下向上或者高楼层有人按下向上
+ 191   2              if((e2>>EleTwo)>0||(up>>EleTwo)>0){
+ 192   3                  EleTwo++;
+ 193   3              }else if((down>>EleTwo)>0){
+ 194   3                  //高楼层按下向下，则先上到最高楼层再向下
+ 195   3                  EleTwo++;
+ 196   3              }else if(downFloor(&e2,&EleTwo)||downFloor(&up,&EleTwo)||downFloor(&down,&EleTwo)){
+ 197   3                  //当电梯内部不需要向上而且高楼层无按钮按下，查看低楼层
+ 198   3                  EleTwoState=2;
+ 199   3                  EleTwo--;
+ 200   3              }else{
+ 201   3                  EleTwoState=0;
+ 202   3              }
+ 203   2          }else{
+ 204   2              if(downFloor(&e2,&EleTwo)||downFloor(&down,&EleTwo)){
+ 205   3                  //处于向下状态时，如果电梯内部需要向下或者低楼层按下向下按钮
+ 206   3                  EleTwo--;
+ 207   3              }else if(downFloor(&up,&EleTwo)){
+ 208   3                  //低楼层有人向上，则降至最低楼层再向上
+ 209   3                  EleTwo--;
+ 210   3              }else if((e2>>EleTwo)>0||(up>>EleTwo)>0||(down>>EleTwo)>0){
+ 211   3                  //响应高楼层的请求
+ 212   3                  EleTwoState=1;
+ 213   3                  EleTwo++;
+ 214   3              }else{
+ 215   3                  EleTwoState=0;
+ 216   3              }
+ 217   2          }
+ 218   1      
+ 219   1          if(EleOneState==0&&EleTwoState==0){
+ 220   2              //两个电梯都静止
+ 221   2              if(EleOne>EleTwo){
+ 222   3                  //电梯1停止的楼层比电梯2高，则电梯1处理高楼层，电梯2处理低楼层
+ 223   3                  if((up>>EleOne)>0||(down>>EleOne)>0){
+ 224   4                      EleOneState=1;
+ 225   4                      EleOne++;
+ 226   4                  }
+ 227   3      
+ 228   3                  if(downFloor(&up,&EleTwo)||downFloor(&down,&EleTwo)){
+ 229   4                      EleTwoState=2;
+ 230   4                      EleTwo--;
+ 231   4                  }
+ 232   3                  if(EleOneState==0&&EleTwoState==0){
+ 233   4                      if(up!=0||down!=0){
+ 234   5                          //请求在楼层中间
+ 235   5                          EleOne--;
+ 236   5                          EleOneState=2;
+ 237   5                          EleTwo++;
+ 238   5                          EleTwoState=1;
+ 239   5                      }
+ 240   4                  }
+ 241   3              }else{
+C51 COMPILER V9.57.0.0   1_1                                                               04/15/2020 12:16:48 PAGE 5   
+
+ 242   3      
+ 243   3                  if((up>>EleTwo)>0||(down>>EleTwo)>0){
+ 244   4                      EleTwoState=1;
+ 245   4                      EleTwo++;
+ 246   4                  }
+ 247   3      
+ 248   3                  if(downFloor(&up,&EleOne)||downFloor(&down,&EleOne)){
+ 249   4                      EleOneState=2;
+ 250   4                      EleOne--;
+ 251   4                  }
+ 252   3      
+ 253   3                  if(EleOneState==0&&EleTwoState==0){
+ 254   4                      if(up!=0||down!=0){
+ 255   5                          //请求在楼层中间
+ 256   5                          EleOne++;
+ 257   5                          EleOneState=1;
+ 258   5                          EleTwo--;
+ 259   5                          EleTwoState=2;
+ 260   5                      }
+ 261   4                  }
+ 262   3              }
+ 263   2          }else if(EleOneState==0){
+ 264   2                  //电梯1静止
+ 265   2                  if(EleTwoState==1){
+ 266   3                      //电梯二在向上
+ 267   3                      if(downFloor(&up,&EleOne)){
+ 268   4                          //而且电梯2下面也有请求,则电梯2处理低楼层请求
+ 269   4                          EleOne--;
+ 270   4                          EleOneState=2;
+ 271   4                      }
+ 272   3                  }else{
+ 273   3                      if((down>>EleOne)>0){
+ 274   4                          EleOne++;
+ 275   4                          EleOneState=1;
+ 276   4                      }
+ 277   3                  }
+ 278   2      
+ 279   2          }else if(EleTwoState==0){
+ 280   2      
+ 281   2                  if(EleOneState==1){
+ 282   3                      if(downFloor(&up,&EleTwo)){
+ 283   4                          EleTwo--;
+ 284   4                          EleTwoState=2;
+ 285   4                      }
+ 286   3                  }else{
+ 287   3                      if((down>>EleTwo)>0){
+ 288   4                          EleTwo++;
+ 289   4                          EleTwoState=1;
+ 290   4                      }
+ 291   3                  }
+ 292   2              }
+ 293   1      
+ 294   1              update_LED();
+ 295   1      
+ 296   1      }
+ 297          
+ 298          
+ 299          void main()
+ 300          {
+ 301   1              int i;
+ 302   1              while(1){
+ 303   2                      i=0;
+C51 COMPILER V9.57.0.0   1_1                                                               04/15/2020 12:16:48 PAGE 6   
+
+ 304   2                      display_LED();
+ 305   2                      display_Elevator();
+ 306   2                      update_click();
+ 307   2                      LookAlgorithm();
+ 308   2                      display_Elevator();
+ 309   2                      
+ 310   2                      while(i<120){
+ 311   3                              update_click();
+ 312   3                              display_LED();
+ 313   3                              i++;
+ 314   3                      }
+ 315   2              }
+ 316   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2637    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     16       8
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
